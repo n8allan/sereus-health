@@ -20,8 +20,9 @@ import {
   type ControlDatabase,
   type StrandInstance,
 } from '@sereus/cadre-core';
-import { MemoryRawStorage } from '@optimystic/db-p2p';
 import { webSockets } from '@libp2p/websockets';
+import { MMKVRawStorage } from '@optimystic/db-p2p-storage-rn';
+import { MMKV } from 'react-native-mmkv';
 import type { Database } from '@quereus/quereus';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import SCHEMA_SQL from '../../../../design/specs/domain/schema.qsql';
@@ -130,10 +131,11 @@ class CadreServiceImpl {
         },
         profile: 'transaction',
         strandFilter: { mode: 'sAppId', sAppId: SAPP_ID },
-        // Phase 1: in-memory storage.
-        // Step 1 complete → swap to MMKVRawStorage for persistence.
         storage: {
-          provider: (_strandId: string) => new MemoryRawStorage(),
+          provider: (strandId: string) => new MMKVRawStorage({
+            mmkv: new MMKV({ id: `optimystic-${strandId}` }),
+            prefix: 'opt:',
+          }),
         },
         network: {
           // RN requires explicit transports (no TCP).  WebSockets satisfies
