@@ -2,6 +2,9 @@
  * @format
  */
 
+// Must be the first import: sets process.env.DEBUG before 'debug' initializes.
+import './src/debug-bootstrap';
+
 // Polyfill for EventTarget + Event (needed by libp2p in RN/Hermes)
 import 'event-target-polyfill';
 
