@@ -44,6 +44,7 @@ async function initOptimystic(): Promise<Database> {
   const { cadreService } = require('../services/CadreService');
   await cadreService.ensureStarted();
   const db: Database = cadreService.getHealthDatabase();
+  await db.exec("PRAGMA schema_path = 'app,main'");
   dbInstance = db;
   logger.info('Database ready (optimystic strand)');
   return db;

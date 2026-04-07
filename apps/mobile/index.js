@@ -5,6 +5,45 @@
 // Must be the first import: sets process.env.DEBUG before 'debug' initializes.
 import './src/debug-bootstrap';
 
+// Polyfill: Timer .ref() / .unref()
+// Node.js timers return objects with .ref()/.unref(); Hermes returns plain numbers.
+// Required by: @optimystic/db-p2p (cluster-repo), undici, libp2p internals.
+// Also patches clearTimeout/clearInterval to unwrap, since RN's native clear
+// functions expect the raw numeric ID.
+const _origSetTimeout = globalThis.setTimeout;
+const _origSetInterval = globalThis.setInterval;
+const _origClearTimeout = globalThis.clearTimeout;
+const _origClearInterval = globalThis.clearInterval;
+
+function _unwrapTimer(handle) {
+  return (handle && typeof handle === 'object' && '_id' in handle)
+    ? handle._id
+    : handle;
+}
+function _wrapTimer(id) {
+  if (typeof id === 'object' && id !== null) return id;
+  return {
+    _id: id,
+    ref() { return this; },
+    unref() { return this; },
+    [Symbol.toPrimitive]() { return this._id; },
+  };
+}
+globalThis.setTimeout = function patchedSetTimeout(...args) {
+  return _wrapTimer(_origSetTimeout.apply(this, args));
+};
+Object.assign(globalThis.setTimeout, _origSetTimeout);
+globalThis.setInterval = function patchedSetInterval(...args) {
+  return _wrapTimer(_origSetInterval.apply(this, args));
+};
+Object.assign(globalThis.setInterval, _origSetInterval);
+globalThis.clearTimeout = function patchedClearTimeout(handle) {
+  return _origClearTimeout.call(this, _unwrapTimer(handle));
+};
+globalThis.clearInterval = function patchedClearInterval(handle) {
+  return _origClearInterval.call(this, _unwrapTimer(handle));
+};
+
 // Polyfill for EventTarget + Event (needed by libp2p in RN/Hermes)
 import 'event-target-polyfill';
 
@@ -102,6 +141,26 @@ if (typeof Symbol !== 'undefined' && typeof Symbol.asyncIterator === 'undefined'
     // Best-effort fallback for runtimes that disallow defineProperty on Symbol.
     Symbol.asyncIterator = Symbol.for('Symbol.asyncIterator');
   }
+}
+
+// Polyfill for Intl.PluralRules (English-only).
+// moat-maker (dep of optimystic) calls new Intl.PluralRules('en', { type: 'ordinal' })
+// at module scope for ordinal formatting in error messages.
+if (typeof Intl !== 'undefined' && typeof Intl.PluralRules === 'undefined') {
+  const ordinalRules = (n) => {
+    const mod10 = n % 10;
+    const mod100 = n % 100;
+    if (mod10 === 1 && mod100 !== 11) return 'one';
+    if (mod10 === 2 && mod100 !== 12) return 'two';
+    if (mod10 === 3 && mod100 !== 13) return 'few';
+    return 'other';
+  };
+  const cardinalRules = (n) => (n === 1 ? 'one' : 'other');
+  Intl.PluralRules = class PluralRules {
+    constructor(_locale, options) { this._type = options?.type === 'ordinal' ? 'ordinal' : 'cardinal'; }
+    select(n) { return this._type === 'ordinal' ? ordinalRules(n) : cardinalRules(n); }
+    resolvedOptions() { return { type: this._type, locale: 'en' }; }
+  };
 }
 
 import { AppRegistry } from 'react-native';

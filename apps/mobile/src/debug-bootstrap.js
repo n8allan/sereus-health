@@ -5,4 +5,4 @@
 // back to process.env.DEBUG.
 if (!globalThis.process) globalThis.process = {};
 if (!globalThis.process.env) globalThis.process.env = {};
-globalThis.process.env.DEBUG = 'sereus:cadre:*,optimystic:*';
+//globalThis.process.env.DEBUG = 'sereus:cadre:*,optimystic:*';
