@@ -1,0 +1,11 @@
+{
+  "name": "sereus-health",
+  "version": "0.0.1",
+  "private": true,
+  "scripts": {
+    "upgrade:mobile": "cd apps/mobile && npx npm-check-updates -u",
+    "upgrade:rn-v1": "cd rn-v1 && npx npm-check-updates -u",
+    "upgrade:mobile:ai": "cd apps/mobile && npx npm-check-updates -u --filter '/@ai-sdk/.*/'",
+    "upgrade:mobile:rn": "cd apps/mobile && npx npm-check-updates -u --filter '/react-native/'"
+  }
+}
