@@ -15,9 +15,13 @@ const workspaceRoot = path.resolve(__dirname, '../../..');
 //   os       — @libp2p/utils  get-thin-waist-addresses.js
 //   net, tls — @libp2p/websockets  listener.js
 const emptyShim = path.resolve(__dirname, 'shims/empty.js');
+const osShim = path.resolve(__dirname, 'shims/node-os.js');
+const cryptoShim = path.resolve(__dirname, 'shims/node-crypto.js');
 const nodeBuiltinStubs = {
-  os: emptyShim,
-  'node:os': emptyShim,
+  os: osShim,
+  'node:os': osShim,
+  crypto: cryptoShim,
+  'node:crypto': cryptoShim,
   net: emptyShim,
   'node:net': emptyShim,
   tls: emptyShim,

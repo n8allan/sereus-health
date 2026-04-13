@@ -101,9 +101,6 @@ if (!globalThis.crypto.subtle) {
   };
 }
 
-// Polyfill for TextEncoder/TextDecoder (used by Quereus plugins on RN/Hermes)
-import 'fast-text-encoding';
-
 // Polyfill for structuredClone (needed by Quereus in React Native)
 import structuredClone from '@ungap/structured-clone';
 if (typeof global.structuredClone === 'undefined') {
