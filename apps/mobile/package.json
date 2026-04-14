@@ -18,6 +18,7 @@
     "@ai-sdk/anthropic": "^3.0.69",
     "@ai-sdk/google": "^3.0.63",
     "@ai-sdk/openai": "^3.0.53",
+    "@noble/hashes": "^2.0.1",
     "@optimystic/db-core": "portal:../../../optimystic/packages/db-core",
     "@optimystic/db-p2p": "portal:../../../optimystic/packages/db-p2p",
     "@optimystic/db-p2p-storage-rn": "portal:../../../optimystic/packages/db-p2p-storage-rn",
