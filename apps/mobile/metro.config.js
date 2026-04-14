@@ -6,14 +6,9 @@ const defaultConfig = getDefaultConfig(__dirname);
 // Workspace root (monorepo)
 const workspaceRoot = path.resolve(__dirname, '../../..');
 
-// Node.js built-in stubs for libp2p transitive imports.
-// Metro resolves all imports statically; these are never called at runtime.
-// Remove each stub once the upstream package ships a proper "react-native"
-// export condition (the existing "browser" field is ignored when "exports"
-// is present in the package).
-//
-//   os       — @libp2p/utils  get-thin-waist-addresses.js
-//   net, tls — @libp2p/websockets  listener.js
+// Node.js built-in shims/stubs for libp2p transitive imports.
+//   os, crypto — real shims providing subset APIs via react-native / @noble/hashes
+//   net, tls   — empty stubs (never called at runtime)
 const emptyShim = path.resolve(__dirname, 'shims/empty.js');
 const osShim = path.resolve(__dirname, 'shims/node-os.js');
 const cryptoShim = path.resolve(__dirname, 'shims/node-crypto.js');

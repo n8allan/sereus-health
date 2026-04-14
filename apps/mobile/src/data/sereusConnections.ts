@@ -54,9 +54,7 @@ function loadMock(variant: string): SereusConnectionsData {
  * can fall back to empty state rather than crashing.
  */
 async function ensureCadreStarted(): Promise<void> {
-  if (!cadreService.isRunning) {
-    await cadreService.start();
-  }
+  await cadreService.ensureStarted();
 }
 
 /**

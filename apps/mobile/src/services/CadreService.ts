@@ -120,9 +120,15 @@ class CadreServiceImpl {
   private async doStart(): Promise<void> {
     this._startError = null;
 
+    const t0 = Date.now();
+    const lap = (label: string, since: number) =>
+      logger.info(`timing: ${label} took ${Date.now() - since}ms (total ${Date.now() - t0}ms)`);
+
     try {
+      const tParty = Date.now();
       this._partyId = await this.getOrCreateValue(PARTY_ID_KEY);
       logger.info('Party ID:', this._partyId);
+      lap('partyId load', tParty);
 
       const config: CadreNodeConfig = {
         controlNetwork: {
@@ -149,7 +155,9 @@ class CadreServiceImpl {
       logger.info('Creating CadreNode...');
       this.node = new CadreNode(config);
       logger.info('Starting CadreNode...');
+      const tNode = Date.now();
       await this.node.start();
+      lap('cadreNode.start (control libp2p + control DB)', tNode);
       logger.info('CadreNode started. Peer ID:', this.node.peerId?.toString());
 
       // Create the health strand.  addStrand() does NOT write to the control
@@ -158,6 +166,7 @@ class CadreServiceImpl {
       const strandId = await this.getOrCreateValue(STRAND_ID_KEY);
       logger.info('Adding health strand:', strandId);
 
+      const tStrand = Date.now();
       this.healthStrand = await this.node.addStrand({
         strandRow: {
           Id: strandId,
@@ -171,7 +180,9 @@ class CadreServiceImpl {
           signature: '', // Placeholder — signing enforced when strand is registered in control DB
         },
       });
+      lap('addStrand (strand libp2p + strand DB + schema apply)', tStrand);
       logger.info('Health strand ready. Database available:', !!this.healthStrand?.database);
+      lap('CadreService.doStart total', t0);
     } catch (err) {
       this._startError = err instanceof Error ? err.message : String(err);
       logger.error('doStart failed:', this._startError);
