@@ -40,6 +40,18 @@ export async function resetDatabaseForDev(): Promise<void> {
         logger.debug('MMKV clear failed:', e);
       }
     }
+    // Clear the persisted peer identity so a fresh key is generated on restart.
+    try {
+      const { MMKV } = require('react-native-mmkv');
+      const peerMmkv = new MMKV({
+        id: 'sereus-peer-identity',
+        encryptionKey: 'sereus-peer-id-v1',
+      });
+      peerMmkv.clearAll();
+      logger.info('Cleared peer identity store');
+    } catch (e) {
+      logger.debug('Peer identity clear failed:', e);
+    }
   } else {
     // LevelDB: destroy all store files.
     const { LevelDB } = require('rn-leveldb');

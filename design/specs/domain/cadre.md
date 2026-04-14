@@ -44,6 +44,14 @@ Keys authorize cadre changes (adding nodes, inviting guests). The schema permits
 
 When signing: search local vault first; if not found, prompt for external key.
 
+## Peer Identity
+
+Each device has a stable Ed25519 peer identity used for all libp2p networks
+(control and strands). The private key is stored in an encrypted MMKV instance
+(`sereus-peer-identity`). This is a lower-stakes key than authority keys —
+migration to Keychain/Keystore is deferred until biometric protection is needed.
+The dev reset flow clears the stored key so a fresh identity is generated.
+
 ## Enrollment
 
 - **Phone adds drone/server**: `createSeed()` → deliver via provider API → dial
