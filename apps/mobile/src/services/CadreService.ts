@@ -20,8 +20,6 @@ import {
   type ControlDatabase,
   type StrandInstance,
 } from '@sereus/cadre-core';
-import { generateKeyPair, privateKeyFromProtobuf, privateKeyToProtobuf } from '@libp2p/crypto/keys';
-import type { PrivateKey } from '@libp2p/interface';
 import { webSockets } from '@libp2p/websockets';
 import { MMKVRawStorage } from '@optimystic/db-p2p-storage-rn';
 import { MMKV } from 'react-native-mmkv';
@@ -29,6 +27,7 @@ import type { Database } from '@quereus/quereus';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import SCHEMA_SQL from '../../../../design/specs/domain/schema.qsql';
 import { createLogger } from '../util/logger';
+import { loadOrCreatePeerKey } from './peerIdentity';
 
 const logger = createLogger('CadreService');
 
@@ -41,10 +40,6 @@ const SAPP_VERSION = '1.0';
 const PARTY_ID_KEY = '@sereus/partyId';
 const STRAND_ID_KEY = '@sereus/healthStrandId';
 const BOOTSTRAP_NODES: string[] = [];
-
-const PEER_KEY_MMKV_ID = 'sereus-peer-identity';
-const PEER_KEY_MMKV_KEY = 'peerPrivateKey';
-const PEER_KEY_ENCRYPTION_KEY = 'sereus-peer-id-v1';
 
 // ---------------------------------------------------------------------------
 // Health schema
@@ -137,7 +132,7 @@ class CadreServiceImpl {
       lap('partyId load', tParty);
 
       const tKey = Date.now();
-      const privateKey = await this.loadOrCreatePeerKey();
+      const privateKey = await loadOrCreatePeerKey();
       lap('loadOrCreatePeerKey', tKey);
 
       const config: CadreNodeConfig = {
@@ -261,21 +256,6 @@ class CadreServiceImpl {
   // -----------------------------------------------------------------------
   // Persistence helpers
   // -----------------------------------------------------------------------
-
-  private async loadOrCreatePeerKey(): Promise<PrivateKey> {
-    const mmkv = new MMKV({
-      id: PEER_KEY_MMKV_ID,
-      encryptionKey: PEER_KEY_ENCRYPTION_KEY,
-    });
-    const stored = mmkv.getBuffer(PEER_KEY_MMKV_KEY);
-    if (stored) {
-      return privateKeyFromProtobuf(new Uint8Array(stored));
-    }
-    const key = await generateKeyPair('Ed25519');
-    const bytes = privateKeyToProtobuf(key);
-    mmkv.set(PEER_KEY_MMKV_KEY, bytes.slice().buffer);
-    return key;
-  }
 
   private async getOrCreateValue(key: string): Promise<string> {
     const stored = await AsyncStorage.getItem(key);

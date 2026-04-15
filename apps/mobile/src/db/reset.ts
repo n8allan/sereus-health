@@ -1,5 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createLogger } from '../util/logger';
+import { clearPeerIdentity } from '../services/peerIdentity';
 import { USE_OPTIMYSTIC } from './config';
 import { closeDatabase } from './index';
 import { resetInitializationState } from './init';
@@ -42,12 +43,7 @@ export async function resetDatabaseForDev(): Promise<void> {
     }
     // Clear the persisted peer identity so a fresh key is generated on restart.
     try {
-      const { MMKV } = require('react-native-mmkv');
-      const peerMmkv = new MMKV({
-        id: 'sereus-peer-identity',
-        encryptionKey: 'sereus-peer-id-v1',
-      });
-      peerMmkv.clearAll();
+      clearPeerIdentity();
       logger.info('Cleared peer identity store');
     } catch (e) {
       logger.debug('Peer identity clear failed:', e);
