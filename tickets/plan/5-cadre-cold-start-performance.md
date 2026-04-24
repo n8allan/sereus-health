@@ -1,5 +1,5 @@
 description: Investigate and reduce cadre cold-start latency on the mobile app
-dependencies: timing logs added to `CadreService.doStart()` (already in place); useful to land alongside the peer-identity persistence ticket since the two share critical-path code
+prereq: timing logs added to `CadreService.doStart()` (already in place); useful to land alongside the peer-identity persistence ticket since the two share critical-path code
 files:
   - apps/mobile/src/services/CadreService.ts (timing logs added)
   - apps/mobile/src/db/index.ts

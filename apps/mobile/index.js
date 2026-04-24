@@ -75,6 +75,62 @@ if (typeof AbortSignal !== 'undefined' &&
   };
 }
 
+// Polyfill for TextDecoder (UTF-8 only).
+// Bare RN 0.85 Hermes ships TextEncoder but NOT TextDecoder; Expo SDK 52+
+// Hermes includes both.  Required by `uint8arrays/util/bases` (module-scope
+// `new TextDecoder('utf8')`), which is pulled in by libp2p/yamux/multiformats
+// at import time — so yamux's default export resolves to undefined and
+// CadreNode.start() blows up with "Cannot read property 'Yamux' of undefined".
+if (typeof globalThis.TextDecoder === 'undefined') {
+  class TextDecoderPolyfill {
+    constructor(label = 'utf-8') {
+      const enc = String(label).toLowerCase().replace('_', '-');
+      if (enc !== 'utf-8' && enc !== 'utf8') {
+        throw new RangeError(`TextDecoder polyfill only supports UTF-8 (got "${label}")`);
+      }
+      this.encoding = 'utf-8';
+      this.fatal = false;
+      this.ignoreBOM = false;
+    }
+    decode(input) {
+      if (input == null) return '';
+      const bytes = input instanceof Uint8Array
+        ? input
+        : ArrayBuffer.isView(input)
+          ? new Uint8Array(input.buffer, input.byteOffset, input.byteLength)
+          : new Uint8Array(input);
+      if (bytes.length === 0) return '';
+      let i = 0;
+      let str = '';
+      // Skip UTF-8 BOM
+      if (bytes[0] === 0xEF && bytes[1] === 0xBB && bytes[2] === 0xBF) i = 3;
+      while (i < bytes.length) {
+        const b = bytes[i++];
+        if (b < 0x80) {
+          str += String.fromCharCode(b);
+        } else if (b < 0xC0) {
+          str += '\uFFFD';
+        } else if (b < 0xE0) {
+          str += String.fromCharCode(((b & 0x1F) << 6) | (bytes[i++] & 0x3F));
+        } else if (b < 0xF0) {
+          str += String.fromCharCode(
+            ((b & 0x0F) << 12) | ((bytes[i++] & 0x3F) << 6) | (bytes[i++] & 0x3F),
+          );
+        } else {
+          let cp = ((b & 0x07) << 18)
+            | ((bytes[i++] & 0x3F) << 12)
+            | ((bytes[i++] & 0x3F) << 6)
+            | (bytes[i++] & 0x3F);
+          cp -= 0x10000;
+          str += String.fromCharCode(0xD800 + (cp >> 10), 0xDC00 + (cp & 0x3FF));
+        }
+      }
+      return str;
+    }
+  }
+  globalThis.TextDecoder = TextDecoderPolyfill;
+}
+
 // Polyfill for crypto.getRandomValues (needed for UUIDv4 generation on RN/Hermes)
 import 'react-native-get-random-values';
 

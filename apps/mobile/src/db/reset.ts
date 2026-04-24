@@ -26,15 +26,18 @@ export async function resetDatabaseForDev(): Promise<void> {
   resetInitializationState();
 
   if (USE_OPTIMYSTIC) {
-    // Read the current strand ID before clearing, so we can delete its MMKV data.
+    // Read the current strand ID before clearing, so we can delete its MMKV data
+    // and per-strand lifecycle mode.
     const strandId = await AsyncStorage.getItem('@sereus/healthStrandId');
+    const keysToRemove = ['@sereus/partyId', '@sereus/healthStrandId'];
+    if (strandId) keysToRemove.push(`@sereus/strand/${strandId}/mode`);
     // Clear persisted cadre identifiers so a fresh cadre bootstraps on restart.
-    await AsyncStorage.multiRemove(['@sereus/partyId', '@sereus/healthStrandId']);
+    await AsyncStorage.multiRemove(keysToRemove);
     // Clear the MMKV storage instance for the strand.
     if (strandId) {
       try {
-        const { MMKV } = require('react-native-mmkv');
-        const mmkv = new MMKV({ id: `optimystic-${strandId}` });
+        const { createMMKV } = require('react-native-mmkv');
+        const mmkv = createMMKV({ id: `optimystic-${strandId}` });
         mmkv.clearAll();
         logger.info(`Cleared MMKV store: optimystic-${strandId}`);
       } catch (e) {

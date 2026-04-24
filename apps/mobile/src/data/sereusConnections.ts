@@ -38,10 +38,10 @@ export type SereusConnectionsData = {
 function loadMock(variant: string): SereusConnectionsData {
   switch (variant) {
     case 'empty':
-      return require('../../mock/data/sereus-connections.empty.json') as SereusConnectionsData;
+      return require('../../../../mock/data/sereus-connections.empty.json') as SereusConnectionsData;
     case 'happy':
     default:
-      return require('../../mock/data/sereus-connections.happy.json') as SereusConnectionsData;
+      return require('../../../../mock/data/sereus-connections.happy.json') as SereusConnectionsData;
   }
 }
 

@@ -29,12 +29,12 @@ function loadMock(variant: string): MockData {
   // Require avoids TS json-module config differences.
   switch (variant) {
     case 'empty':
-      return require('../../mock/data/configure-catalog.empty.json') as MockData;
+      return require('../../../../mock/data/configure-catalog.empty.json') as MockData;
     case 'error':
-      return require('../../mock/data/configure-catalog.error.json') as MockData;
+      return require('../../../../mock/data/configure-catalog.error.json') as MockData;
     case 'happy':
     default:
-      return require('../../mock/data/configure-catalog.happy.json') as MockData;
+      return require('../../../../mock/data/configure-catalog.happy.json') as MockData;
   }
 }
 

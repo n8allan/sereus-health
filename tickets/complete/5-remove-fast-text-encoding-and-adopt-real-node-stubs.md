@@ -1,12 +1,19 @@
 description: Removed fast-text-encoding polyfill and replaced empty Node.js stubs with real shims
-dependencies: @noble/hashes (in resolutions)
+prereq: @noble/hashes (in resolutions)
 files: apps/mobile/index.js, apps/mobile/metro.config.js, apps/mobile/package.json, apps/mobile/shims/node-os.js, apps/mobile/shims/node-crypto.js, apps/mobile/jest.config.js, apps/mobile/__tests__/shims/node-os.test.js, apps/mobile/__tests__/shims/node-crypto.test.js
 ----
 
 ## What was built
 
 ### Removed fast-text-encoding
-- Deleted `import 'fast-text-encoding'` from `index.js` and removed from `package.json` (Hermes includes TextEncoder/TextDecoder natively)
+- Deleted `import 'fast-text-encoding'` from `index.js` and removed from `package.json` (Hermes includes TextEncoder natively on RN 0.85)
+
+> **Correction (see ticket `textdecoder-polyfill-for-bare-rn-hermes`):**
+> Bare RN 0.85 Hermes ships `TextEncoder` but NOT `TextDecoder`.  Expo SDK 52+
+> Hermes has both.  `apps/mobile/index.js` now provides an inline UTF-8-only
+> `TextDecoder` polyfill — required by `uint8arrays` (used by libp2p/yamux/
+> multiformats at module-scope).  The `fast-text-encoding` removal still
+> stands; the inline polyfill replaces it with a smaller, targeted shim.
 
 ### Real Node.js shims
 - `shims/node-os.js` — `networkInterfaces()`, `platform()`, `type()`, `hostname()` via react-native Platform API

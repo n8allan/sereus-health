@@ -16,10 +16,10 @@ type MockData = { graphs: Graph[] };
 function loadMock(variant: string): MockData {
   switch (variant) {
     case 'empty':
-      return require('../../mock/data/graphs.empty.json') as MockData;
+      return require('../../../../mock/data/graphs.empty.json') as MockData;
     case 'happy':
     default:
-      return require('../../mock/data/graphs.happy.json') as MockData;
+      return require('../../../../mock/data/graphs.happy.json') as MockData;
   }
 }
 

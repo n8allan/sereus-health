@@ -1,5 +1,6 @@
 const { getDefaultConfig, mergeConfig } = require('@react-native/metro-config');
 const path = require('path');
+const fs = require('fs');
 
 const defaultConfig = getDefaultConfig(__dirname);
 
@@ -22,6 +23,58 @@ const nodeBuiltinStubs = {
   tls: emptyShim,
   'node:tls': emptyShim,
 };
+
+// @libp2p/crypto ships parallel `.browser.js` variants of its Node-using
+// modules (ed25519 keys, secp256k1 keys, rsa keys, webcrypto, hmac, aes-gcm).
+// The browser variants use @noble/curves + WebCrypto and run correctly in
+// Hermes; the Node variants call crypto.generateKeyPairSync / createPrivateKey
+// / sign / verify, which our minimal node-crypto shim does not implement.
+//
+// The package declares the mapping in its `browser` field, but because we run
+// Metro with `unstable_enablePackageExports: true` AND @libp2p/crypto has an
+// `exports` map (which takes precedence over `browser`), Metro never applies
+// the browser rewrite on its own.  We reproduce it here via resolveRequest.
+//
+// Read the browser map dynamically so future upstream additions are picked up
+// without a config change.  Bare `require.resolve('@libp2p/crypto')` is blocked
+// by exports enforcement on Node 20+ (the `"."` entry only lists `import`), so
+// locate the package by walking the nodeModulesPaths we already configure for
+// Metro below.
+function loadLibp2pCryptoBrowserMap(nodeModulesPaths) {
+  for (const nmRoot of nodeModulesPaths) {
+    const pkgDir = path.join(nmRoot, '@libp2p', 'crypto');
+    const pkgJson = path.join(pkgDir, 'package.json');
+    if (!fs.existsSync(pkgJson)) continue;
+    const pkg = JSON.parse(fs.readFileSync(pkgJson, 'utf8'));
+    const map = pkg.browser;
+    if (!map || typeof map !== 'object') return null;
+    const out = Object.create(null);
+    for (const [from, to] of Object.entries(map)) {
+      out[path.resolve(pkgDir, from)] = path.resolve(pkgDir, to);
+    }
+    return out;
+  }
+  return null;
+}
+
+const nodeModulesPaths = [
+  // Mobile app's node_modules
+  path.resolve(__dirname, 'node_modules'),
+  // Health project root
+  path.resolve(__dirname, '../../node_modules'),
+  // Monorepo root (yarn workspaces hoists here)
+  path.resolve(workspaceRoot, 'node_modules'),
+  // Sereus workspace (for libp2p, etc.)
+  path.resolve(workspaceRoot, 'sereus/node_modules'),
+  // Optimystic workspace
+  path.resolve(workspaceRoot, 'optimystic/node_modules'),
+  // Quereus workspace
+  path.resolve(workspaceRoot, 'quereus/node_modules'),
+  // Fret workspace
+  path.resolve(workspaceRoot, 'fret/node_modules'),
+];
+
+const libp2pCryptoBrowserMap = loadLibp2pCryptoBrowserMap(nodeModulesPaths);
 
 /**
  * Metro configuration
@@ -60,22 +113,7 @@ const config = {
     },
     assetExts: defaultConfig.resolver.assetExts.filter(ext => ext !== 'qsql'),
     sourceExts: [...defaultConfig.resolver.sourceExts, 'qsql'],
-    nodeModulesPaths: [
-      // Mobile app's node_modules
-      path.resolve(__dirname, 'node_modules'),
-      // Health project root
-      path.resolve(__dirname, '../../node_modules'),
-      // Monorepo root (yarn workspaces hoists here)
-      path.resolve(workspaceRoot, 'node_modules'),
-      // Sereus workspace (for libp2p, etc.)
-      path.resolve(workspaceRoot, 'sereus/node_modules'),
-      // Optimystic workspace
-      path.resolve(workspaceRoot, 'optimystic/node_modules'),
-      // Quereus workspace
-      path.resolve(workspaceRoot, 'quereus/node_modules'),
-      // Fret workspace
-      path.resolve(workspaceRoot, 'fret/node_modules'),
-    ],
+    nodeModulesPaths,
     // Map workspace packages to their actual locations (portal-like resolution)
     extraNodeModules: {
       // Optimystic packages (source)
@@ -120,11 +158,26 @@ const config = {
       // this automatically — no manual redirect is needed.
 
       // Default resolution
-      return context.resolveRequest(
+      const resolved = context.resolveRequest(
         { ...context, resolveRequest: undefined },
         moduleName,
         platform,
       );
+
+      // Apply @libp2p/crypto's own `browser` map (see comment above).
+      if (
+        libp2pCryptoBrowserMap &&
+        resolved &&
+        resolved.type === 'sourceFile' &&
+        libp2pCryptoBrowserMap[resolved.filePath]
+      ) {
+        return {
+          type: 'sourceFile',
+          filePath: libp2pCryptoBrowserMap[resolved.filePath],
+        };
+      }
+
+      return resolved;
     },
   },
 };

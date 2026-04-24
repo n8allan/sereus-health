@@ -38,20 +38,20 @@ function loadEntryMock(variant: string): EditEntryModel {
   // Require avoids TS json-module config differences.
   switch (variant) {
     case 'error':
-      return require('../../mock/data/edit-entry.error.json') as EditEntryModel;
+      return require('../../../../mock/data/edit-entry.error.json') as EditEntryModel;
     case 'happy':
     default:
-      return require('../../mock/data/edit-entry.happy.json') as EditEntryModel;
+      return require('../../../../mock/data/edit-entry.happy.json') as EditEntryModel;
   }
 }
 
 function loadStatsMock(variant: string): EditEntryStats {
   switch (variant) {
     case 'empty':
-      return require('../../mock/data/edit-entry-stats.empty.json') as EditEntryStats;
+      return require('../../../../mock/data/edit-entry-stats.empty.json') as EditEntryStats;
     case 'happy':
     default:
-      return require('../../mock/data/edit-entry-stats.happy.json') as EditEntryStats;
+      return require('../../../../mock/data/edit-entry-stats.happy.json') as EditEntryStats;
   }
 }
 

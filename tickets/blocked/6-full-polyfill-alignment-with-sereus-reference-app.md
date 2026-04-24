@@ -1,5 +1,5 @@
 description: Full polyfill alignment with sereus reference app once upstream upgrades land
-dependencies: sereus ticket plan/3-reference-app-polyfill-upgrades (must be completed first)
+prereq: sereus ticket plan/3-reference-app-polyfill-upgrades (must be completed first)
 files: apps/mobile/index.js, apps/mobile/metro.config.js, apps/mobile/package.json
 ----
 ## Blocked on: sereus upstream polyfill upgrades

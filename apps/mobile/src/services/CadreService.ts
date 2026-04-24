@@ -19,10 +19,11 @@ import {
   type CadreNodeEvents,
   type ControlDatabase,
   type StrandInstance,
+  type StrandMode,
 } from '@sereus/cadre-core';
 import { webSockets } from '@libp2p/websockets';
 import { MMKVRawStorage } from '@optimystic/db-p2p-storage-rn';
-import { MMKV } from 'react-native-mmkv';
+import { createMMKV } from 'react-native-mmkv';
 import type { Database } from '@quereus/quereus';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import SCHEMA_SQL from '../../../../design/specs/domain/schema.qsql';
@@ -40,6 +41,20 @@ const SAPP_VERSION = '1.0';
 const PARTY_ID_KEY = '@sereus/partyId';
 const STRAND_ID_KEY = '@sereus/healthStrandId';
 const BOOTSTRAP_NODES: string[] = [];
+
+/**
+ * Per-strand lifecycle mode persists in AsyncStorage under this key prefix.
+ * A fresh strand starts in `'bootstrap'` mode (local transactor, no network I/O);
+ * the first remote-peer enrollment for the strand flips it to `'networked'`.
+ *
+ * TODO: once the control-DB strand row exists (STATUS.md Step 3) migrate this
+ * onto the row and drop the AsyncStorage mirror.
+ */
+const strandModeKey = (strandId: string) => `@sereus/strand/${strandId}/mode`;
+
+function isStrandMode(value: string | null): value is StrandMode {
+  return value === 'bootstrap' || value === 'networked';
+}
 
 // ---------------------------------------------------------------------------
 // Health schema
@@ -145,7 +160,7 @@ class CadreServiceImpl {
         strandFilter: { mode: 'sAppId', sAppId: SAPP_ID },
         storage: {
           provider: (strandId: string) => new MMKVRawStorage({
-            mmkv: new MMKV({ id: `optimystic-${strandId}` }),
+            mmkv: createMMKV({ id: `optimystic-${strandId}` }),
             prefix: 'opt:',
           }),
         },
@@ -170,7 +185,8 @@ class CadreServiceImpl {
       // database — it starts a strand locally with its own libp2p node and
       // StrandDatabase.  No authority key required.
       const strandId = await this.getOrCreateValue(STRAND_ID_KEY);
-      logger.info('Adding health strand:', strandId);
+      const strandMode = await this.getOrCreateStrandMode(strandId);
+      logger.info('Adding health strand:', strandId, 'mode:', strandMode);
 
       const tStrand = Date.now();
       this.healthStrand = await this.node.addStrand({
@@ -185,6 +201,7 @@ class CadreServiceImpl {
           schema: HEALTH_SCHEMA_DDL,
           signature: '', // Placeholder — signing enforced when strand is registered in control DB
         },
+        mode: strandMode,
       });
       lap('addStrand (strand libp2p + strand DB + schema apply)', tStrand);
       logger.info('Health strand ready. Database available:', !!this.healthStrand?.database);
@@ -263,6 +280,19 @@ class CadreServiceImpl {
     const id = generateId();
     await AsyncStorage.setItem(key, id);
     return id;
+  }
+
+  /**
+   * Read the persisted lifecycle mode for a strand; if missing, default to
+   * `'bootstrap'` and persist.  Fresh creates always start in bootstrap so a
+   * solo node can initialize without network round trips.
+   */
+  private async getOrCreateStrandMode(strandId: string): Promise<StrandMode> {
+    const key = strandModeKey(strandId);
+    const stored = await AsyncStorage.getItem(key);
+    if (isStrandMode(stored)) return stored;
+    await AsyncStorage.setItem(key, 'bootstrap');
+    return 'bootstrap';
   }
 }
 
