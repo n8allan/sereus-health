@@ -7,17 +7,24 @@ const defaultConfig = getDefaultConfig(__dirname);
 // Workspace root (monorepo)
 const workspaceRoot = path.resolve(__dirname, '../../..');
 
-// Node.js built-in shims/stubs for libp2p transitive imports.
-//   os, crypto — real shims providing subset APIs via react-native / @noble/hashes
-//   net, tls   — empty stubs (never called at runtime)
-const emptyShim = path.resolve(__dirname, 'shims/empty.js');
-const osShim = path.resolve(__dirname, 'shims/node-os.js');
-const cryptoShim = path.resolve(__dirname, 'shims/node-crypto.js');
+// Node.js built-in polyfills/stubs for libp2p transitive imports.
+//   os, crypto       — real shims providing subset APIs via react-native / @noble/hashes
+//   stream, buffer   — npm packages providing Node-equivalent APIs
+//   net, tls         — empty stubs (never called at runtime)
+const emptyShim = path.resolve(__dirname, 'polyfills/empty.js');
+const osShim = path.resolve(__dirname, 'polyfills/node-os.js');
+const cryptoShim = path.resolve(__dirname, 'polyfills/node-crypto.js');
+const streamShim = require.resolve('readable-stream');
+const bufferShim = require.resolve('buffer');
 const nodeBuiltinStubs = {
   os: osShim,
   'node:os': osShim,
   crypto: cryptoShim,
   'node:crypto': cryptoShim,
+  stream: streamShim,
+  'node:stream': streamShim,
+  buffer: bufferShim,
+  'node:buffer': bufferShim,
   net: emptyShim,
   'node:net': emptyShim,
   tls: emptyShim,

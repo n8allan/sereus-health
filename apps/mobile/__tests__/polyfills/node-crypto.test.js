@@ -1,6 +1,6 @@
-import crypto, { createHash } from '../../shims/node-crypto';
+import crypto, { createHash } from '../../polyfills/node-crypto';
 
-describe('node-crypto shim', () => {
+describe('node-crypto polyfill', () => {
   test('createHash returns a Hash with update and digest', () => {
     const hash = createHash('sha256');
     expect(typeof hash.update).toBe('function');

@@ -1,7 +1,7 @@
 import { Platform } from 'react-native';
-import os, { networkInterfaces, platform, type, hostname } from '../../shims/node-os';
+import os, { networkInterfaces, platform, type, hostname } from '../../polyfills/node-os';
 
-describe('node-os shim', () => {
+describe('node-os polyfill', () => {
   test('networkInterfaces returns empty object', () => {
     expect(networkInterfaces()).toEqual({});
   });
