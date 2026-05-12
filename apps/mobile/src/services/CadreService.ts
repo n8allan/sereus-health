@@ -22,8 +22,8 @@ import {
   type StrandMode,
 } from '@sereus/cadre-core';
 import { webSockets } from '@libp2p/websockets';
-import { MMKVRawStorage } from '@optimystic/db-p2p-storage-rn';
-import { createMMKV } from 'react-native-mmkv';
+import { LevelDBRawStorage, openOptimysticRNDb } from '@optimystic/db-p2p-storage-rn';
+import { LevelDB, LevelDBWriteBatch } from 'rn-leveldb';
 import type { Database } from '@quereus/quereus';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import SCHEMA_SQL from '../../../../design/specs/domain/schema.qsql';
@@ -159,10 +159,14 @@ class CadreServiceImpl {
         profile: 'transaction',
         strandFilter: { mode: 'sAppId', sAppId: SAPP_ID },
         storage: {
-          provider: (strandId: string) => new MMKVRawStorage({
-            mmkv: createMMKV({ id: `optimystic-${strandId}` }),
-            prefix: 'opt:',
-          }),
+          provider: (strandId: string) => new LevelDBRawStorage(
+            openOptimysticRNDb({
+              openFn: (name, createIfMissing, errorIfExists) =>
+                new LevelDB(name, createIfMissing, errorIfExists),
+              WriteBatch: LevelDBWriteBatch,
+              name: `optimystic-${strandId}`,
+            }),
+          ),
         },
         network: {
           // RN requires explicit transports (no TCP).  WebSockets satisfies

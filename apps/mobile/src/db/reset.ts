@@ -26,22 +26,22 @@ export async function resetDatabaseForDev(): Promise<void> {
   resetInitializationState();
 
   if (USE_OPTIMYSTIC) {
-    // Read the current strand ID before clearing, so we can delete its MMKV data
-    // and per-strand lifecycle mode.
+    // Read the current strand ID before clearing, so we can destroy its
+    // LevelDB store and per-strand lifecycle mode.
     const strandId = await AsyncStorage.getItem('@sereus/healthStrandId');
     const keysToRemove = ['@sereus/partyId', '@sereus/healthStrandId'];
     if (strandId) keysToRemove.push(`@sereus/strand/${strandId}/mode`);
     // Clear persisted cadre identifiers so a fresh cadre bootstraps on restart.
     await AsyncStorage.multiRemove(keysToRemove);
-    // Clear the MMKV storage instance for the strand.
+    // Destroy the LevelDB store for the strand. destroyDB requires the DB to
+    // be closed; closeDatabase()/CadreNode.stop() above releases the handle.
     if (strandId) {
       try {
-        const { createMMKV } = require('react-native-mmkv');
-        const mmkv = createMMKV({ id: `optimystic-${strandId}` });
-        mmkv.clearAll();
-        logger.info(`Cleared MMKV store: optimystic-${strandId}`);
+        const { LevelDB } = require('rn-leveldb');
+        LevelDB.destroyDB(`optimystic-${strandId}`, true);
+        logger.info(`Destroyed optimystic store: optimystic-${strandId}`);
       } catch (e) {
-        logger.debug('MMKV clear failed:', e);
+        logger.debug('LevelDB destroy failed:', e);
       }
     }
     // Clear the persisted peer identity so a fresh key is generated on restart.

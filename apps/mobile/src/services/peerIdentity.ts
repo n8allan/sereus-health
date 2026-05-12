@@ -1,30 +1,30 @@
-import { generateKeyPair, privateKeyFromProtobuf, privateKeyToProtobuf } from '@libp2p/crypto/keys';
 import type { PrivateKey } from '@libp2p/interface';
-import { createMMKV, type MMKV } from 'react-native-mmkv';
+import {
+  loadOrCreateRNPeerKey,
+  openOptimysticRNDb,
+} from '@optimystic/db-p2p-storage-rn';
+import { LevelDB, LevelDBWriteBatch } from 'rn-leveldb';
 
-export const PEER_IDENTITY_MMKV_ID = 'sereus-peer-identity';
-export const PEER_IDENTITY_MMKV_KEY = 'peerPrivateKey';
-export const PEER_IDENTITY_ENCRYPTION_KEY = 'sereus-peer-id-v1';
+export const PEER_IDENTITY_DB_NAME = 'sereus-peer-identity';
 
-function openPeerStore(): MMKV {
-  return createMMKV({
-    id: PEER_IDENTITY_MMKV_ID,
-    encryptionKey: PEER_IDENTITY_ENCRYPTION_KEY,
+function openIdentityDb() {
+  return openOptimysticRNDb({
+    openFn: (name, createIfMissing, errorIfExists) =>
+      new LevelDB(name, createIfMissing, errorIfExists),
+    WriteBatch: LevelDBWriteBatch,
+    name: PEER_IDENTITY_DB_NAME,
   });
 }
 
 export async function loadOrCreatePeerKey(): Promise<PrivateKey> {
-  const mmkv = openPeerStore();
-  const stored = mmkv.getBuffer(PEER_IDENTITY_MMKV_KEY);
-  if (stored) {
-    return privateKeyFromProtobuf(new Uint8Array(stored));
+  const db = openIdentityDb();
+  try {
+    return await loadOrCreateRNPeerKey(db);
+  } finally {
+    await db.close();
   }
-  const key = await generateKeyPair('Ed25519');
-  const bytes = privateKeyToProtobuf(key);
-  mmkv.set(PEER_IDENTITY_MMKV_KEY, bytes.slice().buffer);
-  return key;
 }
 
 export function clearPeerIdentity(): void {
-  openPeerStore().clearAll();
+  LevelDB.destroyDB(PEER_IDENTITY_DB_NAME, true);
 }
